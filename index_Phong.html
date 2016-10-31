@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ICG WebGL &mdash; HW1</title>
+    <meta name="author" content="Chih-Yung Liang">
+</head>
+
+<script src="js/glMatrix-0.9.5.min.js"></script>
+<script src="js/webgl-utils.js"></script>
+<script src="js/gl.js"></script>
+<script src="js/common.js"></script>
+
+<script id="fragmentShader" type="x-shader/x-fragment">
+    //per-fragment-lighting-fs
+    #extension GL_OES_standard_derivatives : enable
+    precision highp float;
+    //precision mediump float;
+	
+	uniform float uMaterialShininess;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+    uniform mat3 uNMatrix;
+
+    uniform vec3 uAmbientColor;
+    uniform vec3 uPointLightingLocation;
+    uniform vec3 uPointLightingSpecularColor;
+    uniform vec3 uPointLightingDiffuseColor;
+
+    varying vec4 textureColor;
+    varying vec3 fragPosition;
+    varying vec3 fragNormal;
+    
+    void main(void) {
+        vec3 lightDirection = normalize(uPointLightingLocation - fragPosition);
+        vec3 eyeDirection = normalize(-fragPosition);
+
+        vec3 reflectionDirection = reflect(-lightDirection, fragNormal);
+        float specularLightWeighting = pow(max(dot(reflectionDirection, eyeDirection), 0.0), uMaterialShininess);
+        
+        float diffuseLightWeighting = max(dot(fragNormal, lightDirection), 0.0);
+        
+        vec3 lightWeighting = uAmbientColor
+            + uPointLightingSpecularColor * specularLightWeighting
+            + uPointLightingDiffuseColor * diffuseLightWeighting;       
+
+        gl_FragColor = vec4(textureColor.rgb * lightWeighting, textureColor.a);
+    }
+</script>
+
+<script id="vertexShader" type="x-shader/x-vertex">
+    //per-fragment-lighting-vs
+    #extension GL_OES_standard_derivatives : enable
+
+    attribute vec3 aVertexPosition;
+    attribute vec3 aVertexNormal;
+    attribute vec2 aTextureCoord;
+
+    varying vec4 textureColor;
+    varying vec3 fragPosition;
+    varying vec3 fragNormal;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+    uniform mat3 uNMatrix;
+    uniform sampler2D uSampler;
+
+    void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        fragPosition = (uMVMatrix * vec4(aVertexPosition, 1.0)).xyz;
+        fragNormal = normalize(uNMatrix * aVertexNormal);
+        textureColor = texture2D(uSampler, vec2(aTextureCoord.s, aTextureCoord.t));
+    }
+</script>
+
+<script type="text/javascript">
+var teapot;
+var teapotAngle = 180;
+
+function tick() {
+    teapot.transform.rotate.angle = teapotAngle;
+    teapot.attributes.ambientColorUniform = [
+        parseFloat(document.getElementById('ambientR').value),
+        parseFloat(document.getElementById('ambientG').value),
+        parseFloat(document.getElementById('ambientB').value)
+    ];
+    teapot.attributes.pointLightingLocationUniform = [
+        parseFloat(document.getElementById('lightPositionX').value),
+        parseFloat(document.getElementById('lightPositionY').value),
+        parseFloat(document.getElementById('lightPositionZ').value)
+    ];
+    teapot.attributes.pointLightingSpecularColorUniform = [
+        parseFloat(document.getElementById('specularR').value),
+        parseFloat(document.getElementById('specularG').value),
+        parseFloat(document.getElementById('specularB').value)
+    ];
+    teapot.attributes.pointLightingDiffuseColorUniform = [
+        parseFloat(document.getElementById('diffuseR').value),
+        parseFloat(document.getElementById('diffuseG').value),
+        parseFloat(document.getElementById('diffuseB').value)
+    ];
+    teapot.attributes.materialShininessUniform = parseFloat(document.getElementById('shininess').value);
+
+    requestAnimFrame(tick);
+    gl.drawScene();
+    animate();
+}
+
+function webGLStart() {
+    var canvas = document.getElementById("ICG-canvas");
+    gl.initGL(canvas);
+
+    gl.initShaders([
+        document.getElementById('fragmentShader'),
+        document.getElementById('vertexShader')
+    ], {
+        uniforms: {
+            pMatrixUniform: "uPMatrix",
+            mvMatrixUniform: "uMVMatrix",
+            nMatrixUniform: "uNMatrix",
+            samplerUniform: "uSampler",
+            materialShininessUniform: "uMaterialShininess",
+
+            ambientColorUniform: "uAmbientColor",
+            pointLightingLocationUniform: "uPointLightingLocation",
+            pointLightingSpecularColorUniform: "uPointLightingSpecularColor",
+            pointLightingDiffuseColorUniform: "uPointLightingDiffuseColor"
+        },
+        vertexAttrs: {
+            vertexPositionAttribute: "aVertexPosition",
+            vertexNormalAttribute: "aVertexNormal",
+            textureCoordAttribute: "aTextureCoord"
+        }
+    });
+    
+    galvanizedImg = new Image();
+    galvanizedImg.onload = function () {
+        gl.addTexture("galvanizedTexture", galvanizedImg);
+    }
+    galvanizedImg.src = "textures/galvanizedTexture.jpg";
+
+    teapot = loadTeapot();
+
+    tick();
+}
+</script>
+
+
+<style type="text/css">
+    #loadingtext {
+        position:absolute;
+        top:250px;
+        left:150px;
+        font-size:2em;
+        color: white;
+    }
+</style>
+
+<body onload="webGLStart();">
+    <canvas id="ICG-canvas" style="border: none;" width="800" height="600"></canvas>
+    <br/>
+
+    
+	
+	Shading:
+    <select id="shading" onchange="window.location='index_' + this.value + '.html';">
+        <option value="Flat">Flat Shading</option>
+        <option value="Phong"> Phong Shading</option>
+        <option selected value="Gouraud">Gouraud Shading</option>
+    </select>
+    <br/>
+    <table style="border: 0; padding: 10px;">
+        <tr>
+            <td><b>Material:</b>
+            <td><input type="text" id="shininess" value="32.0" />
+        </tr>
+		<tr>
+            <td><b>Point Light Location:</b>
+            <td>X: <input type="text" id="lightPositionX" value="-10.0" />
+            <td>Y: <input type="text" id="lightPositionY" value="4.0" />
+            <td>Z: <input type="text" id="lightPositionZ" value="-20.0" />
+        </tr>
+        <tr>
+            <td><b>Specular Colour:</b>
+            <td>R: <input type="text" id="specularR" value="0.8" />
+            <td>G: <input type="text" id="specularG" value="0.8" />
+            <td>B: <input type="text" id="specularB" value="0.8" />
+        </tr>
+        <tr>
+            <td><b>Diffuse Colour:</b>
+            <td>R: <input type="text" id="diffuseR" value="0.8" />
+            <td>G: <input type="text" id="diffuseG" value="0.8" />
+            <td>B: <input type="text" id="diffuseB" value="0.8" />
+        </tr>
+		<tr>
+            <td><b>Ambient Light Colour:</b>
+            <td>R: <input type="text" id="ambientR" value="0.2" />
+            <td>G: <input type="text" id="ambientG" value="0.2" />
+            <td>B: <input type="text" id="ambientB" value="0.2" />
+        </tr>
+    </table>
+</body>
+</html>
