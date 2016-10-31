@@ -6,7 +6,8 @@ function loadTeapot() {
             rotate: {
                 angle: 0,
                 around: [0, 1, 0]
-            }
+            },
+            scale: [1, 1, 1]
         },
         attributes: {
             ambientColorUniform: [0.0, 0.0, 0.0],
@@ -15,6 +16,10 @@ function loadTeapot() {
             pointLightingDiffuseColorUniform: [0.0, 0.0, 0.0],
 
             materialShininessUniform: 0.0
+        },
+        others: {
+            shader: 0,
+            texture: 'galvanizedTexture'
         }
     };
 

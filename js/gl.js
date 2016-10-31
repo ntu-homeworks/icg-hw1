@@ -78,7 +78,8 @@ var gl = {
                 vertexIndexBuffer: genBuffer(this, "ELEMENT_ARRAY_BUFFER", new Uint16Array(obj.data.indices), 1)
             },
             transform: obj.transform,
-            attributes: obj.attributes
+            attributes: obj.attributes,
+            others: obj.others
         });
     },
 
@@ -106,12 +107,16 @@ var gl = {
                 }
             }
             this._gl.uniform1i(this.shaderProgram.samplerUniform, 0);
+            if ('shaderUniform' in this.shaderProgram && 'shader' in this.objects[obj].others) {
+                this._gl.uniform1i(this.shaderProgram.shaderUniform, this.objects[obj].others.shader);
+            }
 
             var mvMatrix = mat4.create();
             var transform = this.objects[obj].transform;
             mat4.identity(mvMatrix);
             mat4.translate(mvMatrix, transform.translate);
             mat4.rotate(mvMatrix, this._degToRad(transform.rotate.angle), transform.rotate.around);
+            mat4.scale(mvMatrix, transform.scale);
             this._gl.uniformMatrix4fv(this.shaderProgram.pMatrixUniform, false, pMatrix);
             this._gl.uniformMatrix4fv(this.shaderProgram.mvMatrixUniform, false, mvMatrix);
 
@@ -122,11 +127,8 @@ var gl = {
                 this._gl.uniformMatrix3fv(this.shaderProgram.nMatrixUniform, false, normalMatrix);
             }
 
-            var i = 0;
-            for (var texture in this.textures) {
-                this._gl.activeTexture(this._gl['TEXTURE' + i]);
-                this._gl.bindTexture(this._gl.TEXTURE_2D, this.textures[texture]);
-            }
+            this._gl.activeTexture(this._gl.TEXTURE0);
+            this._gl.bindTexture(this._gl.TEXTURE_2D, this.textures[this.objects[obj].others.texture]);
 
             var buffers = this.objects[obj].buffers;
             var bindBufferAttribute = function(_this, buffer, attribute) {
