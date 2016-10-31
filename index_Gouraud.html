@@ -5,9 +5,10 @@
     <meta name="author" content="Chih-Yung Liang">
 </head>
 
-<script type="text/javascript" src="js/glMatrix-0.9.5.min.js"></script>
-<script type="text/javascript" src="js/webgl-utils.js"></script>
-<script type="text/javascript" src="js/script.js"></script>
+<script src="js/glMatrix-0.9.5.min.js"></script>
+<script src="js/webgl-utils.js"></script>
+<script src="js/gl.js"></script>
+<script src="js/common.js"></script>
 
 <script id="fragmentShader" type="x-shader/x-fragment">
     //per-fragment-lighting-fs
@@ -73,138 +74,80 @@
 </script>
 
 <script type="text/javascript">
-    function setShaderAttributes(shaderProgram) {
-        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+var teapot;
+var teapotAngle = 180;
 
-        shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
-        gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
+function tick() {
+    teapot.transform.rotate.angle = teapotAngle;
+    teapot.attributes.ambientColorUniform = [
+        parseFloat(document.getElementById('ambientR').value),
+        parseFloat(document.getElementById('ambientG').value),
+        parseFloat(document.getElementById('ambientB').value)
+    ];
+    teapot.attributes.pointLightingLocationUniform = [
+        parseFloat(document.getElementById('lightPositionX').value),
+        parseFloat(document.getElementById('lightPositionY').value),
+        parseFloat(document.getElementById('lightPositionZ').value)
+    ];
+    teapot.attributes.pointLightingSpecularColorUniform = [
+        parseFloat(document.getElementById('specularR').value),
+        parseFloat(document.getElementById('specularG').value),
+        parseFloat(document.getElementById('specularB').value)
+    ];
+    teapot.attributes.pointLightingDiffuseColorUniform = [
+        parseFloat(document.getElementById('diffuseR').value),
+        parseFloat(document.getElementById('diffuseG').value),
+        parseFloat(document.getElementById('diffuseB').value)
+    ];
+    teapot.attributes.materialShininessUniform = parseFloat(document.getElementById('shininess').value);
 
-        shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
-        gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+    requestAnimFrame(tick);
+    gl.drawScene();
+    animate();
+}
 
-        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
-        shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
-        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
-        shaderProgram.materialShininessUniform = gl.getUniformLocation(shaderProgram, "uMaterialShininess");
- 
-        shaderProgram.ambientColorUniform = gl.getUniformLocation(shaderProgram, "uAmbientColor");
-        shaderProgram.pointLightingLocationUniform = gl.getUniformLocation(shaderProgram, "uPointLightingLocation");
-        shaderProgram.pointLightingSpecularColorUniform = gl.getUniformLocation(shaderProgram, "uPointLightingSpecularColor");
-        shaderProgram.pointLightingDiffuseColorUniform = gl.getUniformLocation(shaderProgram, "uPointLightingDiffuseColor");
-    }
+function webGLStart() {
+    var canvas = document.getElementById("ICG-canvas");
+    gl.initGL(canvas);
 
-    var earthTexture;
-    var galvanizedTexture;
+    gl.initShaders([
+        document.getElementById('fragmentShader'),
+        document.getElementById('vertexShader')
+    ], {
+        uniforms: {
+            pMatrixUniform: "uPMatrix",
+            mvMatrixUniform: "uMVMatrix",
+            nMatrixUniform: "uNMatrix",
+            samplerUniform: "uSampler",
+            materialShininessUniform: "uMaterialShininess",
 
-    function initTextures() {
-        earthTexture = gl.createTexture();
-        earthTexture.image = new Image();
-        earthTexture.image.onload = function () {
-            handleLoadedTexture(earthTexture)
+            ambientColorUniform: "uAmbientColor",
+            pointLightingLocationUniform: "uPointLightingLocation",
+            pointLightingSpecularColorUniform: "uPointLightingSpecularColor",
+            pointLightingDiffuseColorUniform: "uPointLightingDiffuseColor"
+        },
+        vertexAttrs: {
+            vertexPositionAttribute: "aVertexPosition",
+            vertexNormalAttribute: "aVertexNormal",
+            textureCoordAttribute: "aTextureCoord"
         }
-        earthTexture.image.src = "earth.jpg";
+    });
 
-        galvanizedTexture = gl.createTexture();
-        galvanizedTexture.image = new Image();
-        galvanizedTexture.image.onload = function () {
-            handleLoadedTexture(galvanizedTexture)
-        }
-        galvanizedTexture.image.src = "textures/galvanizedTexture.jpg";
+    earthImg = new Image();
+    earthImg.onload = function () {
+        gl.addTexture("earthTexture", earthImg);
     }
-
-
-    var mvMatrix = mat4.create();
-    var mvMatrixStack = [];
-    var pMatrix = mat4.create();
-
-
-    function setMatrixUniforms() {
-        gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-        gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
-
-        var normalMatrix = mat3.create();
-        mat4.toInverseMat3(mvMatrix, normalMatrix);
-        mat3.transpose(normalMatrix);
-        gl.uniformMatrix3fv(shaderProgram.nMatrixUniform, false, normalMatrix);
+    earthImg.src = "earth.jpg";
+    galvanizedImg = new Image();
+    galvanizedImg.onload = function () {
+        gl.addTexture("galvanizedTexture", galvanizedImg);
     }
+    galvanizedImg.src = "textures/galvanizedTexture.jpg";
 
+    teapot = loadTeapot();
 
-    var teapotAngle = 180;
-
-
-    function drawScene() {
-        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-        if (teapotVertexPositionBuffer == null || teapotVertexNormalBuffer == null || teapotVertexTextureCoordBuffer == null || teapotVertexIndexBuffer == null) {
-            return;
-        }
-
-        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
-
-       
-
-
-        gl.uniform3f(
-            shaderProgram.ambientColorUniform,
-            parseFloat(document.getElementById("ambientR").value),
-            parseFloat(document.getElementById("ambientG").value),
-            parseFloat(document.getElementById("ambientB").value)
-        );
-
-        gl.uniform3f(
-            shaderProgram.pointLightingLocationUniform,
-            parseFloat(document.getElementById("lightPositionX").value),
-            parseFloat(document.getElementById("lightPositionY").value),
-            parseFloat(document.getElementById("lightPositionZ").value)
-        );
-
-        gl.uniform3f(
-            shaderProgram.pointLightingSpecularColorUniform,
-            parseFloat(document.getElementById("specularR").value),
-            parseFloat(document.getElementById("specularG").value),
-            parseFloat(document.getElementById("specularB").value)
-        );
-
-        gl.uniform3f(
-            shaderProgram.pointLightingDiffuseColorUniform,
-            parseFloat(document.getElementById("diffuseR").value),
-            parseFloat(document.getElementById("diffuseG").value),
-            parseFloat(document.getElementById("diffuseB").value)
-        );
-        
-
-
-        mat4.identity(mvMatrix);
-
-        mat4.translate(mvMatrix, [0, 0, -40]);
-       // mat4.rotate(mvMatrix, degToRad(23.4), [1, 0, -1]);
-        mat4.rotate(mvMatrix, degToRad(teapotAngle), [0, 1, 0]);
-
-        gl.activeTexture(gl.TEXTURE0);
-
-        gl.bindTexture(gl.TEXTURE_2D, galvanizedTexture);
-        
-        gl.uniform1i(shaderProgram.samplerUniform, 0);
-
-        gl.uniform1f(shaderProgram.materialShininessUniform, parseFloat(document.getElementById("shininess").value));
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, teapotVertexPositionBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, teapotVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, teapotVertexTextureCoordBuffer);
-        gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, teapotVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, teapotVertexNormalBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, teapotVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, teapotVertexIndexBuffer);
-        setMatrixUniforms();
-        gl.drawElements(gl.TRIANGLES, teapotVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-    }
-
+    tick();
+}
 </script>
 
 

@@ -5,9 +5,10 @@
     <meta name="author" content="Chih-Yung Liang">
 </head>
 
-<script type="text/javascript" src="js/glMatrix-0.9.5.min.js"></script>
-<script type="text/javascript" src="js/webgl-utils.js"></script>
-<script type="text/javascript" src="js/script.js"></script>
+<script src="js/glMatrix-0.9.5.min.js"></script>
+<script src="js/webgl-utils.js"></script>
+<script src="js/gl.js"></script>
+<script src="js/common.js"></script>
 
 <script id="fragmentShader" type="x-shader/x-fragment">
     precision mediump float;
@@ -36,73 +37,46 @@
 </script>
 
 <script type="text/javascript">
-    function setShaderAttributes(shaderProgram) {
-        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+var teapot;
+var teapotAngle = 180;
 
-        shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
-        gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+function tick() {
+    teapot.transform.rotate.angle = teapotAngle;
 
-        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
-        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
-    }
+    requestAnimFrame(tick);
+    gl.drawScene();
+    animate();
+}
 
-    var galvanizedTexture;
+function webGLStart() {
+    var canvas = document.getElementById("ICG-canvas");
+    gl.initGL(canvas);
 
-    function initTextures() {
-        galvanizedTexture = gl.createTexture();
-        galvanizedTexture.image = new Image();
-        galvanizedTexture.image.onload = function () {
-            handleLoadedTexture(galvanizedTexture)
+    gl.initShaders([
+        document.getElementById('fragmentShader'),
+        document.getElementById('vertexShader')
+    ], {
+        uniforms: {
+            pMatrixUniform: "uPMatrix",
+            mvMatrixUniform: "uMVMatrix",
+            samplerUniform: "uSampler"
+        },
+        vertexAttrs: {
+            vertexPositionAttribute: "aVertexPosition",
+            textureCoordAttribute: "aTextureCoord"
         }
-        galvanizedTexture.image.src = "textures/galvanizedTexture.jpg";
+    });
+
+    galvanizedImg = new Image();
+    galvanizedImg.onload = function () {
+        gl.addTexture("galvanizedTexture", galvanizedImg);
     }
+    galvanizedImg.src = "textures/galvanizedTexture.jpg";
 
+    teapot = loadTeapot();
 
-    var mvMatrix = mat4.create();
-    var pMatrix = mat4.create();
-
-
-    function setMatrixUniforms() {
-        gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-        gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
-    }
-
-
-    var teapotAngle = 180;
-
-
-    function drawScene() {
-        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-        if (teapotVertexPositionBuffer == null || teapotVertexNormalBuffer == null || teapotVertexTextureCoordBuffer == null || teapotVertexIndexBuffer == null) {
-            return;
-        }
-
-        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
-
-        mat4.identity(mvMatrix);
-
-        mat4.translate(mvMatrix, [0, 0, -40]);
-
-        mat4.rotate(mvMatrix, degToRad(teapotAngle), [0, 1, 0]);
-
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, galvanizedTexture);
-        
-        gl.uniform1i(shaderProgram.samplerUniform, 0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, teapotVertexPositionBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, teapotVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, teapotVertexTextureCoordBuffer);
-        gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, teapotVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, teapotVertexIndexBuffer);
-        setMatrixUniforms();
-        gl.drawElements(gl.TRIANGLES, teapotVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-    }
-
+    tick();
+}
 </script>
 
 <body onload="webGLStart();">
