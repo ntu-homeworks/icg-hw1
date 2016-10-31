@@ -8,6 +8,9 @@ var gl = {
         }
         if (!this._gl) {
             alert("Could not initialise WebGL, sorry :-(");
+        }   
+        if(!this._gl.getExtension('OES_standard_derivatives')) {
+   		    throw 'extension not support';
         }
 
         this._gl.clearColor(0.0, 0.2, 0.2, 1.0);

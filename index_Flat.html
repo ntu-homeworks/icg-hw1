@@ -12,64 +12,67 @@
 
 <script id="fragmentShader" type="x-shader/x-fragment">
     //per-fragment-lighting-fs
-
-    precision mediump float;
-    varying vec4 fragcolor;
-    void main(void) {
-        gl_FragColor = fragcolor;
-    }
-</script>
-
-<script id="vertexShader" type="x-shader/x-vertex">
-    //per-fragment-lighting-vs
-
-    attribute vec3 aVertexPosition;
-    attribute vec3 aVertexNormal;
-    attribute vec2 aTextureCoord;
+    #extension GL_OES_standard_derivatives : enable
+    precision highp float;
+    //precision mediump float;
+	
+	uniform float uMaterialShininess;
 
     uniform mat4 uMVMatrix;
     uniform mat4 uPMatrix;
     uniform mat3 uNMatrix;
 
-	varying vec4 fragcolor;
-	
-	uniform float uMaterialShininess;
-
     uniform vec3 uAmbientColor;
-    uniform vec3 uPointLightingLocation;
     uniform vec3 uPointLightingSpecularColor;
     uniform vec3 uPointLightingDiffuseColor;
 
-    uniform sampler2D uSampler;
-
+    varying vec4 textureColor;
+    varying vec3 fragPosition;
+    varying vec3 lightDirection;
+    varying vec3 eyeDirection;
+    
     void main(void) {
-        //vPosition = uMVMatrix * vec4(aVertexPosition, 1.0);
-        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        vec3 normal = normalize(cross(
+            dFdx(fragPosition),
+            dFdy(fragPosition)
+        ));
 
-        
-		
-		vec3 lightWeighting;
-        vec3 lightDirection = normalize(uPointLightingLocation - (uMVMatrix * vec4(aVertexPosition, 1.0)).xyz);
-        vec3 normal = normalize(uNMatrix * aVertexNormal);
-
-        float specularLightWeighting = 0.0;
-        
-        vec3 eyeDirection = normalize(-(uMVMatrix * vec4(aVertexPosition, 1.0)).xyz);
         vec3 reflectionDirection = reflect(-lightDirection, normal);
-
-        specularLightWeighting = pow(max(dot(reflectionDirection, eyeDirection), 0.0), uMaterialShininess);
+        float specularLightWeighting = pow(max(dot(reflectionDirection, eyeDirection), 0.0), uMaterialShininess);
         
-
         float diffuseLightWeighting = max(dot(normal, lightDirection), 0.0);
-         lightWeighting = uAmbientColor
+        
+        vec3 lightWeighting = uAmbientColor
             + uPointLightingSpecularColor * specularLightWeighting
             + uPointLightingDiffuseColor * diffuseLightWeighting;       
 
-        vec4 fragmentColor;
-		fragmentColor = texture2D(uSampler, vec2(aTextureCoord.s, aTextureCoord.t));
-		fragcolor = vec4(fragmentColor.rgb * lightWeighting, fragmentColor.a);;
-		
-		
+        gl_FragColor = vec4(textureColor.rgb * lightWeighting, textureColor.a);
+    }
+</script>
+
+<script id="vertexShader" type="x-shader/x-vertex">
+    //per-fragment-lighting-vs
+    #extension GL_OES_standard_derivatives : enable
+
+    attribute vec3 aVertexPosition;
+    attribute vec2 aTextureCoord;
+
+    varying vec4 textureColor;
+    varying vec3 fragPosition;
+    varying vec3 lightDirection;
+    varying vec3 eyeDirection;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+    uniform vec3 uPointLightingLocation;
+    uniform sampler2D uSampler;
+
+    void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        fragPosition = (uMVMatrix * vec4(aVertexPosition, 1.0)).xyz;
+        lightDirection = normalize(uPointLightingLocation - (uMVMatrix * vec4(aVertexPosition, 1.0)).xyz);
+        eyeDirection = normalize(-(uMVMatrix * vec4(aVertexPosition, 1.0)).xyz);
+        textureColor = texture2D(uSampler, vec2(aTextureCoord.s, aTextureCoord.t));
     }
 </script>
 
@@ -132,12 +135,12 @@ function webGLStart() {
             textureCoordAttribute: "aTextureCoord"
         }
     });
-    
-    galvanizedImg = new Image();
-    galvanizedImg.onload = function () {
-        gl.addTexture("galvanizedTexture", galvanizedImg);
+
+    redImg = new Image();
+    redImg.onload = function () {
+        gl.addTexture("redTexture", redImg);
     }
-    galvanizedImg.src = "textures/galvanizedTexture.jpg";
+    redImg.src = "textures/red.jpg";
 
     teapot = loadTeapot();
 
