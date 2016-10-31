@@ -8,7 +8,6 @@
 <script src="js/glMatrix-0.9.5.min.js"></script>
 <script src="js/webgl-utils.js"></script>
 <script src="js/gl.js"></script>
-<script src="js/common.js"></script>
 
 <script id="fragmentShader" type="x-shader/x-fragment">
     //per-fragment-lighting-fs
@@ -145,36 +144,12 @@
 </script>
 
 <script type="text/javascript">
-var teapot;
-var teapotAngle = 180;
-
 function tick() {
-    teapot.transform.rotate.angle = teapotAngle;
-    teapot.attributes.ambientColorUniform = [
-        parseFloat(document.getElementById('ambientR').value),
-        parseFloat(document.getElementById('ambientG').value),
-        parseFloat(document.getElementById('ambientB').value)
-    ];
-    teapot.attributes.pointLightingLocationUniform = [
-        parseFloat(document.getElementById('lightPositionX').value),
-        parseFloat(document.getElementById('lightPositionY').value),
-        parseFloat(document.getElementById('lightPositionZ').value)
-    ];
-    teapot.attributes.pointLightingSpecularColorUniform = [
-        parseFloat(document.getElementById('specularR').value),
-        parseFloat(document.getElementById('specularG').value),
-        parseFloat(document.getElementById('specularB').value)
-    ];
-    teapot.attributes.pointLightingDiffuseColorUniform = [
-        parseFloat(document.getElementById('diffuseR').value),
-        parseFloat(document.getElementById('diffuseG').value),
-        parseFloat(document.getElementById('diffuseB').value)
-    ];
-    teapot.attributes.materialShininessUniform = parseFloat(document.getElementById('shininess').value);
-
     requestAnimFrame(tick);
     gl.drawScene();
-    animate();
+    for (var obj in allObjects) {
+        allObjects[obj].update();
+    }
 }
 
 function webGLStart() {
@@ -217,12 +192,9 @@ function webGLStart() {
     }
     redImg.src = "textures/red.jpg";
 
-    teapot = loadTeapot();
-
     tick();
 }
 </script>
-
 
 <style type="text/css">
     #loadingtext {
@@ -238,44 +210,174 @@ function webGLStart() {
     <canvas id="ICG-canvas" style="border: none;" width="800" height="600"></canvas>
     <br/>
 
+    <button type="button" id="add-object">Add Object</button>
     
-	
+    <div id="template">
+	<h2>Object:</h2>
 	Shading:
-    <select id="shading" onchange="window.location='index_' + this.value + '.html';">
-        <option value="Flat">Flat Shading</option>
-        <option value="Phong"> Phong Shading</option>
-        <option selected value="Gouraud">Gouraud Shading</option>
+    <select class="shading">
+        <option value="0">Flat Shading</option>
+        <option selected value="2"> Phong Shading</option>
+        <option value="1">Gouraud Shading</option>
     </select>
     <br/>
+	Texture:
+    <select class="texture">
+        <option selected value="galvanizedTexture">galvanized</option>
+        <option value="redTexture">red</option>
+    </select>
+    <br/>
+    Transform:
+    <table style="border: 0; padding: 10px;">
+		<tr>
+            <td><b>Translate:</b>
+            <td>X: <input type="number" class="translateX" value="0.0" />
+            <td>Y: <input type="number" class="translateY" value="0.0" />
+            <td>Z: <input type="number" class="translateZ" value="-40.0" />
+        </tr>
+        <tr>
+            <td><b>Rotate:</b>
+            <td>degree: <input type="number" class="degree" value="0" />
+        </tr>
+        <tr>
+            <td><b>Rotate Around:</b>
+            <td>X: <input type="number" class="aroundX" value="0" />
+            <td>Y: <input type="number" class="aroundY" value="1" />
+            <td>Z: <input type="number" class="aroundZ" value="0" />
+        </tr>
+        <tr>
+            <td><b>Scale:</b>
+            <td>X: <input type="number" class="scaleX" value="1" />
+            <td>Y: <input type="number" class="scaleY" value="1" />
+            <td>Z: <input type="number" class="scaleZ" value="1" />
+        </tr>
+    </table>
     <table style="border: 0; padding: 10px;">
         <tr>
             <td><b>Material:</b>
-            <td><input type="text" id="shininess" value="32.0" />
+            <td><input type="number" class="shininess" value="32.0" />
         </tr>
 		<tr>
             <td><b>Point Light Location:</b>
-            <td>X: <input type="text" id="lightPositionX" value="-10.0" />
-            <td>Y: <input type="text" id="lightPositionY" value="4.0" />
-            <td>Z: <input type="text" id="lightPositionZ" value="-20.0" />
+            <td>X: <input type="number" class="lightPositionX" value="-10.0" />
+            <td>Y: <input type="number" class="lightPositionY" value="4.0" />
+            <td>Z: <input type="number" class="lightPositionZ" value="-20.0" />
         </tr>
         <tr>
             <td><b>Specular Colour:</b>
-            <td>R: <input type="text" id="specularR" value="0.8" />
-            <td>G: <input type="text" id="specularG" value="0.8" />
-            <td>B: <input type="text" id="specularB" value="0.8" />
+            <td>R: <input type="number" class="specularR" value="0.8" />
+            <td>G: <input type="number" class="specularG" value="0.8" />
+            <td>B: <input type="number" class="specularB" value="0.8" />
         </tr>
         <tr>
             <td><b>Diffuse Colour:</b>
-            <td>R: <input type="text" id="diffuseR" value="0.8" />
-            <td>G: <input type="text" id="diffuseG" value="0.8" />
-            <td>B: <input type="text" id="diffuseB" value="0.8" />
+            <td>R: <input type="number" class="diffuseR" value="0.8" />
+            <td>G: <input type="number" class="diffuseG" value="0.8" />
+            <td>B: <input type="number" class="diffuseB" value="0.8" />
         </tr>
 		<tr>
             <td><b>Ambient Light Colour:</b>
-            <td>R: <input type="text" id="ambientR" value="0.2" />
-            <td>G: <input type="text" id="ambientG" value="0.2" />
-            <td>B: <input type="text" id="ambientB" value="0.2" />
+            <td>R: <input type="number" class="ambientR" value="0.2" />
+            <td>G: <input type="number" class="ambientG" value="0.2" />
+            <td>B: <input type="number" class="ambientB" value="0.2" />
         </tr>
     </table>
+    </div>
 </body>
+
+<script src="js/jquery-3.1.1.min.js"></script>
+<script>
+var allObjects = [];
+
+var CGObject = function(obj) {
+    this.data = {};
+    this.transform = {
+        translate: [0, 0, -40],
+        rotate: {
+            angle: 0,
+            around: [0, 1, 0]
+        },
+        scale: [1, 1, 1]
+    };
+    this.attributes = {
+        ambientColorUniform: [0.0, 0.0, 0.0],
+        pointLightingLocationUniform: [0.0, 0.0, 0.0],
+        pointLightingSpecularColorUniform: [0.0, 0.0, 0.0],
+        pointLightingDiffuseColorUniform: [0.0, 0.0, 0.0],
+
+        materialShininessUniform: 0.0
+    };
+    this.others = {
+        shader: 0,
+        texture: 'galvanizedTexture'
+    };
+    this.listenTo = null;
+
+    var _this = this;
+    $.getJSON(obj, function(data) {
+        _this.data = data;
+        gl.addObject(_this);
+    });
+
+    allObjects.push(this);
+    this.update = function() {
+        if (this.listenTo == null) {
+            return;
+        }
+
+        this.others.shader = this.listenTo.find('.shading').val();
+        this.others.texture = this.listenTo.find('.texture').val();
+
+        this.transform.translate = [
+            parseFloat(this.listenTo.find('.translateX').val()),
+            parseFloat(this.listenTo.find('.translateY').val()),
+            parseFloat(this.listenTo.find('.translateZ').val())
+        ];
+        this.transform.rotate.angle = parseFloat(this.listenTo.find('.degree').val());
+        this.transform.rotate.around = [
+            parseFloat(this.listenTo.find('.aroundX').val()),
+            parseFloat(this.listenTo.find('.aroundY').val()),
+            parseFloat(this.listenTo.find('.aroundZ').val())
+        ];
+        this.transform.scale = [
+            parseFloat(this.listenTo.find('.scaleX').val()),
+            parseFloat(this.listenTo.find('.scaleY').val()),
+            parseFloat(this.listenTo.find('.scaleZ').val())
+        ];
+
+        this.attributes.materialShininessUniform = parseFloat(this.listenTo.find('.shininess').val());
+        this.attributes.pointLightingLocationUniform = [
+            parseFloat(this.listenTo.find('.lightPositionX').val()),
+            parseFloat(this.listenTo.find('.lightPositionY').val()),
+            parseFloat(this.listenTo.find('.lightPositionZ').val())
+        ];
+        this.attributes.pointLightingSpecularColorUniform = [
+            parseFloat(this.listenTo.find('.specularR').val()),
+            parseFloat(this.listenTo.find('.specularG').val()),
+            parseFloat(this.listenTo.find('.specularB').val())
+        ];
+        this.attributes.pointLightingDiffuseColorUniform = [
+            parseFloat(this.listenTo.find('.diffuseR').val()),
+            parseFloat(this.listenTo.find('.diffuseG').val()),
+            parseFloat(this.listenTo.find('.diffuseB').val())
+        ];
+        this.attributes.ambientColorUniform = [
+            parseFloat(this.listenTo.find('.ambientR').val()),
+            parseFloat(this.listenTo.find('.ambientG').val()),
+            parseFloat(this.listenTo.find('.ambientB').val())
+        ];
+    }
+}
+
+$(document).ready(function() {
+    var template = $('#template').hide();
+
+    $('#add-object').click(function() {
+        var newObj = new CGObject('objects/Teapot.json'); // Current fixed...
+        var newOptions = template.clone().appendTo($('body')).show();
+
+        newObj.listenTo = newOptions;
+    });
+});
+</script>
 </html>
