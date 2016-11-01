@@ -112,11 +112,22 @@ var gl = {
             }
 
             var mvMatrix = mat4.create();
-            var transform = this.objects[obj].transform;
             mat4.identity(mvMatrix);
-            mat4.translate(mvMatrix, transform.translate);
-            mat4.rotate(mvMatrix, this._degToRad(transform.rotate.angle), transform.rotate.around);
-            mat4.scale(mvMatrix, transform.scale);
+			if ('transform' in this.objects[obj]) {
+				var transform = this.objects[obj].transform;
+				if ('translate' in transform) {
+					mat4.translate(mvMatrix, transform.translate);
+				}
+				if ('rotate' in transform) {
+					mat4.rotate(mvMatrix, this._degToRad(transform.rotate.angle), transform.rotate.around);
+				}
+				if ('scale' in transform) {
+					mat4.scale(mvMatrix, transform.scale);
+				}
+				if ('shear' in transform) {
+					mat4.multiply(mvMatrix, mat4.create([1, 0, 0, 0, 1 / Math.tan(this._degToRad(transform.shear)), 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]));
+				}
+			}
             this._gl.uniformMatrix4fv(this.shaderProgram.pMatrixUniform, false, pMatrix);
             this._gl.uniformMatrix4fv(this.shaderProgram.mvMatrixUniform, false, mvMatrix);
 

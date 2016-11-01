@@ -231,55 +231,59 @@ function webGLStart() {
     <table style="border: 0; padding: 10px;">
 		<tr>
             <td><b>Translate:</b>
-            <td>X: <input type="number" class="translateX" value="0.0" />
-            <td>Y: <input type="number" class="translateY" value="0.0" />
-            <td>Z: <input type="number" class="translateZ" value="-40.0" />
+            <td>X: <input type="number" class="translateX" value="0.0" step="0.1" />
+            <td>Y: <input type="number" class="translateY" value="0.0" step="0.1" />
+            <td>Z: <input type="number" class="translateZ" value="-40.0" step="0.1" />
         </tr>
         <tr>
             <td><b>Rotate:</b>
-            <td>degree: <input type="number" class="degree" value="0" />
+            <td>degree: <input type="number" class="degree" value="0" step="1" />
         </tr>
         <tr>
             <td><b>Rotate Around:</b>
-            <td>X: <input type="number" class="aroundX" value="0" />
-            <td>Y: <input type="number" class="aroundY" value="1" />
-            <td>Z: <input type="number" class="aroundZ" value="0" />
+            <td>X: <input type="number" class="aroundX" value="0" step="0.1" />
+            <td>Y: <input type="number" class="aroundY" value="1" step="0.1" />
+            <td>Z: <input type="number" class="aroundZ" value="0" step="0.1" />
         </tr>
         <tr>
             <td><b>Scale:</b>
-            <td>X: <input type="number" class="scaleX" value="1" />
-            <td>Y: <input type="number" class="scaleY" value="1" />
-            <td>Z: <input type="number" class="scaleZ" value="1" />
+            <td>X: <input type="number" class="scaleX" value="1" step="0.1" />
+            <td>Y: <input type="number" class="scaleY" value="1" step="0.1" />
+            <td>Z: <input type="number" class="scaleZ" value="1" step="0.1" />
+        </tr>
+        <tr>
+            <td><b>Shear:</b>
+            <td>&theta;: <input type="number" class="shear" value="90" step="1" />
         </tr>
     </table>
     <table style="border: 0; padding: 10px;">
         <tr>
             <td><b>Material:</b>
-            <td><input type="number" class="shininess" value="32.0" />
+            <td><input type="number" class="shininess" value="32.0" step="0.1" />
         </tr>
 		<tr>
             <td><b>Point Light Location:</b>
-            <td>X: <input type="number" class="lightPositionX" value="-10.0" />
-            <td>Y: <input type="number" class="lightPositionY" value="4.0" />
-            <td>Z: <input type="number" class="lightPositionZ" value="-20.0" />
+            <td>X: <input type="number" class="lightPositionX" value="-10.0" step="0.1" />
+            <td>Y: <input type="number" class="lightPositionY" value="4.0" step="0.1" />
+            <td>Z: <input type="number" class="lightPositionZ" value="-20.0" step="0.1" />
         </tr>
         <tr>
             <td><b>Specular Colour:</b>
-            <td>R: <input type="number" class="specularR" value="0.8" />
-            <td>G: <input type="number" class="specularG" value="0.8" />
-            <td>B: <input type="number" class="specularB" value="0.8" />
+            <td>R: <input type="number" class="specularR" value="0.8" step="0.1" />
+            <td>G: <input type="number" class="specularG" value="0.8" step="0.1" />
+            <td>B: <input type="number" class="specularB" value="0.8" step="0.1" />
         </tr>
         <tr>
             <td><b>Diffuse Colour:</b>
-            <td>R: <input type="number" class="diffuseR" value="0.8" />
-            <td>G: <input type="number" class="diffuseG" value="0.8" />
-            <td>B: <input type="number" class="diffuseB" value="0.8" />
+            <td>R: <input type="number" class="diffuseR" value="0.8" step="0.1" />
+            <td>G: <input type="number" class="diffuseG" value="0.8" step="0.1" />
+            <td>B: <input type="number" class="diffuseB" value="0.8" step="0.1" />
         </tr>
 		<tr>
             <td><b>Ambient Light Colour:</b>
-            <td>R: <input type="number" class="ambientR" value="0.2" />
-            <td>G: <input type="number" class="ambientG" value="0.2" />
-            <td>B: <input type="number" class="ambientB" value="0.2" />
+            <td>R: <input type="number" class="ambientR" value="0.2" step="0.1" />
+            <td>G: <input type="number" class="ambientG" value="0.2" step="0.1" />
+            <td>B: <input type="number" class="ambientB" value="0.2" step="0.1" />
         </tr>
     </table>
     </div>
@@ -297,7 +301,8 @@ var CGObject = function(obj) {
             angle: 0,
             around: [0, 1, 0]
         },
-        scale: [1, 1, 1]
+        scale: [1, 1, 1],
+		shear: 90
     };
     this.attributes = {
         ambientColorUniform: [0.0, 0.0, 0.0],
@@ -344,6 +349,7 @@ var CGObject = function(obj) {
             parseFloat(this.listenTo.find('.scaleY').val()),
             parseFloat(this.listenTo.find('.scaleZ').val())
         ];
+        this.transform.shear = parseFloat(this.listenTo.find('.shear').val());
 
         this.attributes.materialShininessUniform = parseFloat(this.listenTo.find('.shininess').val());
         this.attributes.pointLightingLocationUniform = [
