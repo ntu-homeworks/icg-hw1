@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ICG WebGL &mdash; HW1</title>
+    <meta name="author" content="Chih-Yung Liang">
+</head>
+
+<script src="js/glMatrix-0.9.5.min.js"></script>
+<script src="js/webgl-utils.js"></script>
+<script src="js/gl.js"></script>
+<script src="js/common.js"></script>
+
+<script id="fragmentShader" type="x-shader/x-fragment">
+    precision mediump float;
+    varying vec4 fragcolor;
+    void main(void) {
+        gl_FragColor = fragcolor;
+    }
+</script>
+
+<script id="vertexShader" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;
+    attribute vec2 aTextureCoord;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+
+	varying vec4 fragcolor;
+    uniform sampler2D uSampler;
+
+    void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        vec4 fragmentColor;
+		fragmentColor = texture2D(uSampler, vec2(aTextureCoord.s, aTextureCoord.t));
+		fragcolor = vec4(fragmentColor.rgb, fragmentColor.a);;
+    }
+</script>
+
+<script type="text/javascript">
+var teapot;
+var teapotAngle = 180;
+
+function tick() {
+    teapot.transform.rotate.angle = teapotAngle;
+
+    requestAnimFrame(tick);
+    gl.drawScene();
+    animate();
+}
+
+function webGLStart() {
+    var canvas = document.getElementById("ICG-canvas");
+    gl.initGL(canvas);
+
+    gl.initShaders([
+        document.getElementById('fragmentShader'),
+        document.getElementById('vertexShader')
+    ], {
+        uniforms: {
+            pMatrixUniform: "uPMatrix",
+            mvMatrixUniform: "uMVMatrix",
+            samplerUniform: "uSampler"
+        },
+        vertexAttrs: {
+            vertexPositionAttribute: "aVertexPosition",
+            textureCoordAttribute: "aTextureCoord"
+        }
+    });
+
+    galvanizedImg = new Image();
+    galvanizedImg.onload = function () {
+        gl.addTexture("galvanizedTexture", galvanizedImg);
+    }
+    galvanizedImg.src = "textures/galvanizedTexture.jpg";
+
+    teapot = loadTeapot();
+
+    tick();
+}
+</script>
+
+<body onload="webGLStart();">
+    <canvas id="ICG-canvas" style="border: none;" width="800" height="600"></canvas>
+</body>
+</html>
